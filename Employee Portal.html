@@ -1,0 +1,1805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enterprise Employee Portal & Man-Hour Dashboard</title>
+    <style>
+        :root {
+            --primary: #0056b3;
+            --primary-dark: #004085;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --border-color: #dee2e6;
+            --highlight: #e9ecef;
+            --weekend-bg: #fff3cd;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- AUTH SCREEN --- */
+        #auth-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-grow: 1;
+            padding: 20px;
+        }
+
+        .auth-card {
+            background: var(--card-bg);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .auth-card h2 {
+            text-align: center;
+            color: var(--primary);
+            margin-bottom: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 0.9em;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1em;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .btn:hover { background-color: var(--primary-dark); }
+        .btn-success { background-color: var(--success); }
+        .btn-success:hover { background-color: #218838; }
+        .btn-danger { background-color: var(--danger); }
+        .btn-danger:hover { background-color: #c82333; }
+        .btn-secondary { background-color: #6c757d; color: white; }
+        .btn-secondary:hover { background-color: #5a6268; }
+
+        .error-msg {
+            color: var(--danger);
+            font-size: 0.85em;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        /* --- DASHBOARD LAYOUT --- */
+        #app-container {
+            display: none;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: var(--primary);
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+
+        header h1 { font-size: 1.4em; }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .main-layout {
+            display: flex;
+            flex-grow: 1;
+        }
+
+        sidebar {
+            width: 260px;
+            background: white;
+            border-right: 1px solid var(--border-color);
+            padding: 20px 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .nav-item {
+            padding: 12px 25px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #555;
+            transition: all 0.2s;
+            border-left: 4px solid transparent;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background-color: #f1f3f5;
+            color: var(--primary);
+            border-left-color: var(--primary);
+        }
+
+        content-area {
+            flex-grow: 1;
+            padding: 30px;
+            overflow-y: auto;
+            max-height: calc(100vh - 70px);
+        }
+
+        .section-panel {
+            display: none;
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .section-panel.active { display: block; }
+
+        h3 {
+            color: var(--primary);
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* --- TABLES & FORMS --- */
+        .table-responsive {
+            overflow-x: auto;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 700px;
+        }
+
+        th, td {
+            padding: 12px 10px;
+            border-bottom: 1px solid var(--border-color);
+            border-right: 1px solid var(--border-color);
+            text-align: center;
+            font-size: 0.95em;
+        }
+
+        th {
+            background-color: var(--primary);
+            color: white;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        td:last-child, th:last-child { border-right: none; }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.85em;
+            width: auto;
+        }
+
+        .inline-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .inline-form .form-group {
+            margin-bottom: 0;
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .weekend-row { background-color: var(--weekend-bg) !important; }
+
+        /* --- HPLC MACHINE CARD WRAPPER --- */
+        .hplc-machine-card {
+            background: #fdfefe;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+        }
+        .hplc-machine-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 15px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .params-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 15px;
+        }
+
+        .chart-container {
+            background: #fff;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin-top: 20px;
+        }
+        .chart-bar-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+        .chart-label {
+            width: 200px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .chart-bar-wrapper {
+            flex-grow: 1;
+            background: #e9ecef;
+            border-radius: 4px;
+            height: 24px;
+            position: relative;
+            overflow: hidden;
+            margin: 0 15px;
+        }
+        .chart-bar-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        .chart-val {
+            width: 70px;
+            font-weight: bold;
+            text-align: right;
+        }
+
+        .time-input {
+            cursor: pointer;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        .time-input:hover { background-color: var(--highlight); }
+
+        .tp-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .tp-modal {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            width: 300px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        .tp-modal h3 { margin: 0 0 15px 0; color: var(--primary); border: none; padding: 0; justify-content: center;}
+        .tp-columns { display: flex; justify-content: space-around; margin-bottom: 20px; }
+        .tp-column { width: 45%; }
+        .tp-column-title { font-weight: bold; margin-bottom: 10px; color: #555; }
+        .tp-list {
+            height: 200px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+        .tp-item {
+            padding: 10px;
+            cursor: pointer;
+            font-size: 1.2em;
+            transition: background 0.2s;
+        }
+        .tp-item:hover { background: #f1f3f5; }
+        .tp-item.selected { background: var(--primary); color: white; font-weight: bold; }
+        .tp-actions { display: flex; justify-content: space-between; }
+        .tp-actions .btn { width: 48%; }
+
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top:0; left:0; right:0; bottom:0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-box {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            width: 400px;
+            max-width: 90%;
+        }
+        #sync-status {
+            position: fixed;
+            bottom: 15px;
+            right: 15px;
+            background: #28a745;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            display: none;
+            z-index: 2000;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="sync-status">Saved locally!</div>
+
+    <!-- AUTHENTICATION SCREEN -->
+    <div id="auth-container">
+        <div class="auth-card">
+            <h2>Enterprise Employee Portal</h2>
+            <div class="form-group">
+                <label>Login As</label>
+                <select id="login-role" onchange="toggleRoleFields()">
+                    <option value="employee">Employee</option>
+                    <option value="admin">Administrator</option>
+                </select>
+            </div>
+            <div class="form-group" id="emp-id-group">
+                <label>Employee ID</label>
+                <input type="text" id="login-id" placeholder="e.g. EMP001">
+            </div>
+            <div class="form-group" id="admin-user-group" style="display:none;">
+                <label>Admin Username</label>
+                <input type="text" id="login-admin-user" placeholder="admin">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="login-pass" placeholder="Enter password">
+            </div>
+            <button class="btn" onclick="handleLogin()">Login</button>
+            <div id="auth-error" class="error-msg"></div>
+            <div style="margin-top: 15px; text-align: center; font-size: 0.85em; color: #666;">
+                Default Admin: <b>admin</b> / <b>admin123</b><br>
+                Default Employee: <b>EMP001</b> / <b>password123</b><br>
+                Default Employee: <b>102736</b> / <b>password123</b>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN APP CONTAINER -->
+    <div id="app-container">
+        <header>
+            <h1 id="app-header-title">Enterprise Employee Portal</h1>
+            <div class="user-info">
+                <span id="welcome-user-text">Welcome, User</span>
+                <button class="btn btn-sm btn-secondary" onclick="openPasswordModal()">Change Password</button>
+                <button class="btn btn-sm btn-danger" onclick="handleLogout()">Logout</button>
+            </div>
+        </header>
+
+        <div class="main-layout">
+            <sidebar id="sidebar-nav"></sidebar>
+
+            <content-area>
+                <!-- 1. PROFILE -->
+                <div id="section-profile" class="section-panel active">
+                    <h3>Employee Profile Information</h3>
+                    <div id="profile-details" style="line-height: 1.8;"></div>
+                </div>
+
+                <!-- 2. LEAVE DAYS -->
+                <div id="section-leaves" class="section-panel">
+                    <h3>Leave Days Management (Current Month)</h3>
+                    <div class="inline-form">
+                        <div class="form-group">
+                            <label>From Date</label>
+                            <input type="date" id="leave-from-date">
+                        </div>
+                        <div class="form-group">
+                            <label>To Date</label>
+                            <input type="date" id="leave-to-date">
+                        </div>
+                        <button class="btn btn-sm btn-success" onclick="addLeaveEntry()">Add Leave</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>From Date</th>
+                                    <th>To Date</th>
+                                    <th>Days Count</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaves-table-body"></tbody>
+                            <tfoot>
+                                <tr style="background: var(--highlight); font-weight: bold;">
+                                    <td colspan="2" style="text-align: right;">Total Leave Days:</td>
+                                    <td id="total-leave-days-count">0</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 3. TRAINING ATTENDED -->
+                <div id="section-training-attended" class="section-panel">
+                    <h3>Training Attended (Current Month)</h3>
+                    <div class="inline-form">
+                        <div class="form-group">
+                            <label>Date</label>
+                            <input type="date" id="ta-date">
+                        </div>
+                        <div class="form-group">
+                            <label>Number of Trainings Attended</label>
+                            <input type="number" id="ta-count" value="1" min="1">
+                        </div>
+                        <button class="btn btn-sm btn-success" onclick="addTrainingAttended()">Add Record</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Trainings Attended Count</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ta-table-body"></tbody>
+                            <tfoot>
+                                <tr style="background: var(--highlight); font-weight: bold;">
+                                    <td style="text-align: right;">Total Trainings Attended:</td>
+                                    <td id="total-ta-count">0</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 4. TRAINING CONDUCTED -->
+                <div id="section-training-conducted" class="section-panel">
+                    <h3>Training Conducted (Current Month)</h3>
+                    <div class="inline-form">
+                        <div class="form-group">
+                            <label>Date</label>
+                            <input type="date" id="tc-date">
+                        </div>
+                        <div class="form-group">
+                            <label>Number of Trainings Conducted</label>
+                            <input type="number" id="tc-count" value="1" min="1">
+                        </div>
+                        <button class="btn btn-sm btn-success" onclick="addTrainingConducted()">Add Record</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Trainings Conducted Count</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tc-table-body"></tbody>
+                            <tfoot>
+                                <tr style="background: var(--highlight); font-weight: bold;">
+                                    <td style="text-align: right;">Total Trainings Conducted:</td>
+                                    <td id="total-tc-count">0</td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 5. MANPOWER & OVERTIME -->
+                <div id="section-overtime" class="section-panel">
+                    <h3>Manpower & Overtime Calculation Sheet</h3>
+                    <div class="inline-form" style="align-items: center; justify-content: space-between;">
+                        <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label>Select Year</label>
+                                <select id="ot-year" onchange="changeMonthYear()">
+                                    <option value="2025">2025</option>
+                                    <option value="2026" selected>2026</option>
+                                    <option value="2027">2027</option>
+                                    <option value="2028">2028 (Leap)</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom:0;">
+                                <label>Select Month</label>
+                                <select id="ot-month" onchange="changeMonthYear()">
+                                    <option value="0">January</option>
+                                    <option value="1">February</option>
+                                    <option value="2">March</option>
+                                    <option value="3">April</option>
+                                    <option value="4">May</option>
+                                    <option value="5">June</option>
+                                    <option value="6">July</option>
+                                    <option value="7">August</option>
+                                    <option value="8">September</option>
+                                    <option value="9" selected>October</option>
+                                    <option value="10">November</option>
+                                    <option value="11">December</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-sm btn-success" onclick="addOTDay()">+ Add Day</button>
+                            <button class="btn btn-sm btn-secondary" onclick="exportOvertimeCSV()">📊 Export CSV</button>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Day</th>
+                                    <th>Date</th>
+                                    <th>Day of Week</th>
+                                    <th>Regular Hours</th>
+                                    <th>Overtime (OT) Hours</th>
+                                    <th>Total Hours</th>
+                                    <th>Task / Project Remarks</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ot-table-body"></tbody>
+                            <tfoot>
+                                <tr style="background: var(--highlight); font-weight: bold;">
+                                    <td colspan="3" style="text-align: right;">Total Monthly Hours:</td>
+                                    <td id="ot-total-reg">0.00</td>
+                                    <td id="ot-total-ot">0.00</td>
+                                    <td id="ot-total-all">0.00</td>
+                                    <td colspan="2"></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 6. MULTI-HPLC -->
+                <div id="section-hplc" class="section-panel">
+                    <h3>HPLC Run Time Calculator & Logbook Management</h3>
+                    <div style="margin-bottom: 20px;">
+                        <button class="btn btn-success btn-sm" onclick="addNewHplcMachine()">+ Add Another HPLC Machine</button>
+                    </div>
+                    <div id="hplcMachinesContainer"></div>
+                </div>
+
+                <!-- 7. DOCUMENTATION STATUS -->
+                <div id="section-docs" class="section-panel">
+                    <h3>Department Documentation Work Status</h3>
+                    <div class="inline-form">
+                        <div class="form-group">
+                            <label>Document Name</label>
+                            <input type="text" id="doc-name" placeholder="SOP / Protocol title">
+                        </div>
+                        <div class="form-group">
+                            <label>Category</label>
+                            <select id="doc-category">
+                                <option value="SOP">SOP</option>
+                                <option value="Protocol">Protocol</option>
+                                <option value="Validation Report">Validation Report</option>
+                                <option value="Logbook">Logbook</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select id="doc-status">
+                                <option value="Drafting">Drafting</option>
+                                <option value="Review">Under Review</option>
+                                <option value="Approved">Approved & Active</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-sm btn-success" onclick="addDocumentStatus()">Add Document</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Document Name</th>
+                                    <th>Category</th>
+                                    <th>Status</th>
+                                    <th>Last Updated</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="docs-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 8. ADMIN DASHBOARD -->
+                <div id="section-admin-dashboard" class="section-panel">
+                    <h3>Enterprise Manpower & Man-Hour Calculation Dashboard</h3>
+                    <div class="inline-form" style="align-items: center; margin-bottom: 20px;">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Dashboard Year</label>
+                            <select id="admin-year" onchange="changeAdminCalendar()">
+                                <option value="2025">2025</option>
+                                <option value="2026" selected>2026</option>
+                                <option value="2027">2027</option>
+                                <option value="2028">2028 (Leap)</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <label>Dashboard Month</label>
+                            <select id="admin-month" onchange="changeAdminCalendar()">
+                                <option value="0">January</option>
+                                <option value="1">February</option>
+                                <option value="2">March</option>
+                                <option value="3">April</option>
+                                <option value="4">May</option>
+                                <option value="5">June</option>
+                                <option value="6">July</option>
+                                <option value="7">August</option>
+                                <option value="8">September</option>
+                                <option value="9" selected>October</option>
+                                <option value="10">November</option>
+                                <option value="11">December</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <h4 style="color: var(--primary); margin-bottom: 10px;">Monthly Holiday & Working Days Configuration</h4>
+                    <div class="params-card">
+                        <div class="form-group">
+                            <label>Total Friday</label>
+                            <input type="number" id="param-total-fridays" value="4" onchange="updateMonthParams()">
+                        </div>
+                        <div class="form-group">
+                            <label>Total Monday</label>
+                            <input type="number" id="param-total-mondays" value="4" onchange="updateMonthParams()">
+                        </div>
+                        <div class="form-group">
+                            <label>Public Holiday</label>
+                            <input type="number" id="param-public-holiday" value="0" onchange="updateMonthParams()">
+                        </div>
+                        <div class="form-group">
+                            <label>Total Holiday</label>
+                            <input type="text" id="param-total-holiday" readonly style="background:#e9ecef; font-weight:bold;">
+                        </div>
+                        <div class="form-group">
+                            <label>Total Days in Month</label>
+                            <input type="number" id="param-total-days" readonly style="background:#e9ecef; font-weight:bold;">
+                        </div>
+                        <div class="form-group">
+                            <label>Total Working Days</label>
+                            <input type="text" id="param-total-working-days" readonly style="background:#e8f5e9; font-weight:bold; color:#2e7d32;">
+                        </div>
+                        <div class="form-group">
+                            <label>Total Days with Monday</label>
+                            <input type="text" id="param-total-days-with-monday" readonly style="background:#e3f2fd; font-weight:bold; color:#0d47a1;">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                        <button class="btn btn-sm btn-success" onclick="openAddEmployeeModal()">+ Add New Employee</button>
+                        <button class="btn btn-sm btn-secondary" onclick="exportAdminManHourCSV()">📊 Export Man-Hour Summary Excel</button>
+                        <button class="btn btn-sm btn-secondary" onclick="exportAdminOvertimeMatrixCSV()">📊 Export Daily OT Matrix Excel</button>
+                    </div>
+
+                    <h4 style="color: var(--primary); margin: 20px 0 10px 0;">1. Man-Hour Summary Sheet</h4>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>S.No.</th>
+                                    <th>Employee Name</th>
+                                    <th>Designation</th>
+                                    <th>ID</th>
+                                    <th>Total Working Days</th>
+                                    <th>Leave (Days)</th>
+                                    <th>Days Present</th>
+                                    <th>Avg. Hours/Day</th>
+                                    <th>Total Working Hours</th>
+                                    <th>Regular Time (Hrs)</th>
+                                    <th>Overtime (Hrs)</th>
+                                    <th>Total Man-Hour</th>
+                                    <th>% Efficiency</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-manhour-table"></tbody>
+                        </table>
+                    </div>
+
+                    <h4 style="color: var(--primary); margin: 30px 0 10px 0;">2. Man Hour Percentage Bar Chart (%)</h4>
+                    <div class="chart-container" id="admin-chart-container"></div>
+
+                    <h4 style="color: var(--primary); margin: 30px 0 10px 0;">3. Daily Overtime Matrix</h4>
+                    <div class="table-responsive">
+                        <table style="min-width: 1400px;">
+                            <thead>
+                                <tr id="admin-ot-matrix-header">
+                                    <th>S.No.</th>
+                                    <th>Name</th>
+                                    <th>ID</th>
+                                    <th>Total OT</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-ot-matrix-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </content-area>
+        </div>
+    </div>
+
+    <!-- TIME PICKER MODAL -->
+    <div id="timePicker" class="tp-overlay">
+        <div class="tp-modal">
+            <h3>Select Time (24h)</h3>
+            <div class="tp-columns">
+                <div class="tp-column">
+                    <div class="tp-column-title">Hour</div>
+                    <div id="hourList" class="tp-list"></div>
+                </div>
+                <div class="tp-column">
+                    <div class="tp-column-title">Minute</div>
+                    <div id="minuteList" class="tp-list"></div>
+                </div>
+            </div>
+            <div class="tp-actions">
+                <button id="tpCancel" class="btn btn-secondary">Cancel</button>
+                <button id="tpOk" class="btn">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PASSWORD MODAL -->
+    <div id="passwordModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Change Password</h3>
+            <div class="form-group">
+                <label>New Password</label>
+                <input type="password" id="new-password" placeholder="Enter new password">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-success" onclick="updatePassword()">Update</button>
+                <button class="btn btn-secondary" onclick="closePasswordModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD EMPLOYEE MODAL -->
+    <div id="employeeModal" class="modal-overlay">
+        <div class="modal-box">
+            <h3>Add New Employee</h3>
+            <div class="form-group">
+                <label>Employee ID</label>
+                <input type="text" id="new-emp-id" placeholder="EMP002">
+            </div>
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="new-emp-name" placeholder="John Doe">
+            </div>
+            <div class="form-group">
+                <label>Designation</label>
+                <input type="text" id="new-emp-desig" placeholder="QC Chemist">
+            </div>
+            <div class="form-group">
+                <label>Department</label>
+                <input type="text" id="new-emp-dept" placeholder="Quality Control">
+            </div>
+            <div class="form-group">
+                <label>Initial Password</label>
+                <input type="password" id="new-emp-pass" placeholder="password123">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="btn btn-success" onclick="saveNewEmployee()">Save Employee</button>
+                <button class="btn btn-secondary" onclick="closeAddEmployeeModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const defaultDb = {
+            employees: [
+                { id: "EMP001", name: "Alex Johnson", designation: "Sr. Executive", department: "Quality Control", pass: "password123" },
+                { id: "102736", name: "Sajjad Alam", designation: "Officer", department: "Quality Control", pass: "password123" }
+            ],
+            monthParams: { totalFridays: 4, totalMondays: 4, publicHoliday: 0, totalDays: 31 },
+            selectedYear: 2026,
+            selectedMonth: 9,
+            leaves: { "EMP001": [], "102736": [] },
+            trainingAttended: { "EMP001": [], "102736": [] },
+            trainingConducted: { "EMP001": [], "102736": [] },
+            overtime: { "EMP001": [], "102736": [] },
+            hplcMachines: [{ id: "HPLC-01", name: "Waters Alliance HPLC 1", rows: [] }],
+            docs: [],
+            passwords: { "admin": "admin123", "EMP001": "password123", "102736": "password123" }
+        };
+
+        let db = JSON.parse(localStorage.getItem('enterprise_github_db')) || defaultDb;
+
+        function saveData() {
+            localStorage.setItem('enterprise_github_db', JSON.stringify(db));
+            const syncEl = document.getElementById('sync-status');
+            syncEl.style.display = 'block';
+            syncEl.textContent = "Saved locally!";
+            setTimeout(() => { syncEl.style.display = 'none'; }, 2000);
+        }
+
+        function getDaysInMonth(year, month) {
+            return new Date(year, month + 1, 0).getDate();
+        }
+
+        function getDayName(dateStr) {
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const d = new Date(dateStr);
+            return isNaN(d) ? '' : days[d.getDay()];
+        }
+
+        function getDayNameByNum(year, month, day) {
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const d = new Date(year, month, day);
+            return days[d.getDay()];
+        }
+
+        function generateMonthOT(year, month) {
+            let daysCount = getDaysInMonth(year, month);
+            let days = [];
+            let mStr = (month + 1).toString().padStart(2, '0');
+            for(let i = 1; i <= daysCount; i++) {
+                let dStr = `${year}-${mStr}-${i < 10 ? '0' + i : i}`;
+                let dayName = getDayName(dStr);
+                let isOff = (dayName === 'Friday' || dayName === 'Monday');
+                days.push({ 
+                    date: dStr, 
+                    reg: isOff ? 0 : 8.5, 
+                    ot: 0, 
+                    remarks: isOff ? "Weekend Off (Friday/Monday)" : "Regular shift" 
+                });
+            }
+            return days;
+        }
+
+        let currentUser = null;
+        let currentRole = null;
+
+        function toggleRoleFields() {
+            const role = document.getElementById('login-role').value;
+            if(role === 'admin') {
+                document.getElementById('emp-id-group').style.display = 'none';
+                document.getElementById('admin-user-group').style.display = 'block';
+            } else {
+                document.getElementById('emp-id-group').style.display = 'block';
+                document.getElementById('admin-user-group').style.display = 'none';
+            }
+        }
+
+        function handleLogin() {
+            const role = document.getElementById('login-role').value;
+            const pass = document.getElementById('login-pass').value;
+            const errEl = document.getElementById('auth-error');
+
+            if(role === 'admin') {
+                const user = document.getElementById('login-admin-user').value.trim();
+                if(db.passwords[user] && db.passwords[user] === pass) {
+                    currentRole = 'admin';
+                    currentUser = user;
+                    initApp();
+                } else {
+                    errEl.textContent = "Invalid Admin Credentials!";
+                }
+            } else {
+                const empId = document.getElementById('login-id').value.trim().toUpperCase();
+                const emp = db.employees.find(e => e.id === empId);
+                if(emp && db.passwords[empId] && db.passwords[empId] === pass) {
+                    currentRole = 'employee';
+                    currentUser = empId;
+                    initApp();
+                } else {
+                    errEl.textContent = "Invalid Employee ID or Password!";
+                }
+            }
+        }
+
+        function handleLogout() {
+            currentUser = null;
+            currentRole = null;
+            document.getElementById('app-container').style.display = 'none';
+            document.getElementById('auth-container').style.display = 'flex';
+            document.getElementById('login-pass').value = '';
+        }
+
+        function initApp() {
+            document.getElementById('auth-container').style.display = 'none';
+            document.getElementById('app-container').style.display = 'flex';
+            
+            buildSidebar();
+            if(currentRole === 'admin') {
+                document.getElementById('app-header-title').textContent = "Enterprise Admin Dashboard";
+                document.getElementById('welcome-user-text').textContent = "Welcome, Administrator";
+                switchSection('admin-dashboard');
+            } else {
+                const emp = db.employees.find(e => e.id === currentUser);
+                document.getElementById('app-header-title').textContent = `Employee Portal - ${emp.name}`;
+                document.getElementById('welcome-user-text').textContent = `Welcome, ${emp.name}`;
+                switchSection('profile');
+                renderProfile();
+                renderLeaves();
+                renderTrainingAttended();
+                renderTrainingConducted();
+                renderOvertime();
+            }
+        }
+
+        function buildSidebar() {
+            const sidebar = document.getElementById('sidebar-nav');
+            sidebar.innerHTML = '';
+            if(currentRole === 'admin') {
+                sidebar.innerHTML = `
+                    <div class="nav-item active" onclick="switchSection('admin-dashboard')">📊 Manpower & OT Dashboard</div>
+                    <div class="nav-item" onclick="switchSection('hplc')">🔬 HPLC Run Calculators</div>
+                    <div class="nav-item" onclick="switchSection('docs')">📁 Documentation Status</div>
+                `;
+            } else {
+                sidebar.innerHTML = `
+                    <div class="nav-item active" onclick="switchSection('profile')">👤 My Profile</div>
+                    <div class="nav-item" onclick="switchSection('leaves')">📅 Leave Management</div>
+                    <div class="nav-item" onclick="switchSection('training-attended')">🎓 Training Attended</div>
+                    <div class="nav-item" onclick="switchSection('training-conducted')">👨‍🏫 Training Conducted</div>
+                    <div class="nav-item" onclick="switchSection('overtime')">⏱️ Overtime & Manpower</div>
+                `;
+            }
+        }
+
+        function switchSection(sectionId) {
+            document.querySelectorAll('.section-panel').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+            if(currentRole === 'admin' && sectionId === 'admin-dashboard') {
+                document.getElementById('section-admin-dashboard').classList.add('active');
+                renderAdminDashboard();
+            } else {
+                document.getElementById(`section-${sectionId}`).classList.add('active');
+                if(sectionId === 'profile') renderProfile();
+                if(sectionId === 'leaves') renderLeaves();
+                if(sectionId === 'training-attended') renderTrainingAttended();
+                if(sectionId === 'training-conducted') renderTrainingConducted();
+                if(sectionId === 'overtime') renderOvertime();
+                if(sectionId === 'docs') renderDocs();
+                if(sectionId === 'hplc') initMultiHplcManager();
+            }
+            event && event.target && event.target.classList.add('active');
+        }
+
+        function renderProfile() {
+            const emp = db.employees.find(e => e.id === currentUser);
+            document.getElementById('profile-details').innerHTML = `
+                <p><b>Employee ID:</b> ${emp.id}</p>
+                <p><b>Full Name:</b> ${emp.name}</p>
+                <p><b>Designation:</b> ${emp.designation}</p>
+                <p><b>Department:</b> ${emp.department}</p>
+                <p><b>Account Status:</b> Active</p>
+            `;
+        }
+
+        function calculateLeaveDays(fromDate, toDate) {
+            if(!fromDate || !toDate) return 0;
+            const start = new Date(fromDate);
+            const end = new Date(toDate);
+            const diffTime = end - start;
+            if(diffTime < 0) return 0;
+            return Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        }
+
+        function addLeaveEntry() {
+            const fromDate = document.getElementById('leave-from-date').value;
+            const toDate = document.getElementById('leave-to-date').value;
+            if(!fromDate || !toDate) { alert("Please select both From Date and To Date"); return; }
+            
+            const daysCount = calculateLeaveDays(fromDate, toDate);
+            if(daysCount <= 0) { alert("To Date must be on or after From Date"); return; }
+
+            if(!db.leaves[currentUser]) db.leaves[currentUser] = [];
+            db.leaves[currentUser].push({ fromDate, toDate, daysCount });
+            saveData();
+            renderLeaves();
+            document.getElementById('leave-from-date').value = '';
+            document.getElementById('leave-to-date').value = '';
+        }
+
+        function deleteLeave(index) {
+            db.leaves[currentUser].splice(index, 1);
+            saveData();
+            renderLeaves();
+        }
+
+        function renderLeaves() {
+            const tbody = document.getElementById('leaves-table-body');
+            tbody.innerHTML = '';
+            const list = db.leaves[currentUser] || [];
+            let totalDays = 0;
+            list.forEach((l, idx) => {
+                let dCount = l.daysCount || calculateLeaveDays(l.fromDate, l.toDate);
+                totalDays += dCount;
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${l.fromDate}</td>
+                        <td>${l.toDate}</td>
+                        <td><b>${dCount}</b></td>
+                        <td><button class="btn btn-sm btn-danger" onclick="deleteLeave(${idx})">Delete</button></td>
+                    </tr>
+                `;
+            });
+            document.getElementById('total-leave-days-count').textContent = totalDays;
+        }
+
+        function addTrainingAttended() {
+            const date = document.getElementById('ta-date').value;
+            const count = parseInt(document.getElementById('ta-count').value) || 1;
+            if(!date) { alert("Please select date"); return; }
+
+            if(!db.trainingAttended[currentUser]) db.trainingAttended[currentUser] = [];
+            db.trainingAttended[currentUser].push({ date, count });
+            saveData();
+            renderTrainingAttended();
+            document.getElementById('ta-date').value = '';
+            document.getElementById('ta-count').value = '1';
+        }
+
+        function deleteTrainingAttended(idx) {
+            db.trainingAttended[currentUser].splice(idx, 1);
+            saveData();
+            renderTrainingAttended();
+        }
+
+        function renderTrainingAttended() {
+            const tbody = document.getElementById('ta-table-body');
+            tbody.innerHTML = '';
+            const list = db.trainingAttended[currentUser] || [];
+            let totalCount = 0;
+            list.forEach((t, idx) => {
+                let c = parseInt(t.count) || 1;
+                totalCount += c;
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${t.date}</td>
+                        <td><b>${c}</b></td>
+                        <td><button class="btn btn-sm btn-danger" onclick="deleteTrainingAttended(${idx})">Delete</button></td>
+                    </tr>
+                `;
+            });
+            document.getElementById('total-ta-count').textContent = totalCount;
+        }
+
+        function addTrainingConducted() {
+            const date = document.getElementById('tc-date').value;
+            const count = parseInt(document.getElementById('tc-count').value) || 1;
+            if(!date) { alert("Please select date"); return; }
+
+            if(!db.trainingConducted[currentUser]) db.trainingConducted[currentUser] = [];
+            db.trainingConducted[currentUser].push({ date, count });
+            saveData();
+            renderTrainingConducted();
+            document.getElementById('tc-date').value = '';
+            document.getElementById('tc-count').value = '1';
+        }
+
+        function deleteTrainingConducted(idx) {
+            db.trainingConducted[currentUser].splice(idx, 1);
+            saveData();
+            renderTrainingConducted();
+        }
+
+        function renderTrainingConducted() {
+            const tbody = document.getElementById('tc-table-body');
+            tbody.innerHTML = '';
+            const list = db.trainingConducted[currentUser] || [];
+            let totalCount = 0;
+            list.forEach((t, idx) => {
+                let c = parseInt(t.count) || 1;
+                totalCount += c;
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${t.date}</td>
+                        <td><b>${c}</b></td>
+                        <td><button class="btn btn-sm btn-danger" onclick="deleteTrainingConducted(${idx})">Delete</button></td>
+                    </tr>
+                `;
+            });
+            document.getElementById('total-tc-count').textContent = totalCount;
+        }
+
+        function changeMonthYear() {
+            db.selectedYear = parseInt(document.getElementById('ot-year').value);
+            db.selectedMonth = parseInt(document.getElementById('ot-month').value);
+            db.overtime[currentUser] = generateMonthOT(db.selectedYear, db.selectedMonth);
+            saveData();
+            renderOvertime();
+        }
+
+        function renderOvertime() {
+            document.getElementById('ot-year').value = db.selectedYear;
+            document.getElementById('ot-month').value = db.selectedMonth;
+
+            const tbody = document.getElementById('ot-table-body');
+            tbody.innerHTML = '';
+            if(!db.overtime[currentUser]) db.overtime[currentUser] = generateMonthOT(db.selectedYear, db.selectedMonth);
+
+            let totalReg = 0, totalOt = 0;
+            db.overtime[currentUser].forEach((row, idx) => {
+                let reg = parseFloat(row.reg) || 0;
+                let ot = parseFloat(row.ot) || 0;
+                totalReg += reg;
+                totalOt += ot;
+
+                let dayName = getDayName(row.date);
+                let isWeekend = (dayName === 'Friday' || dayName === 'Monday');
+                let rowClass = isWeekend ? 'weekend-row' : '';
+
+                tbody.innerHTML += `
+                    <tr class="${rowClass}">
+                        <td>Day ${idx+1}</td>
+                        <td><input type="date" style="width:130px;" value="${row.date}" onchange="updateOTDate(${idx}, this.value)"></td>
+                        <td><b>${dayName}</b></td>
+                        <td><input type="number" step="0.5" style="width:70px; text-align:center;" value="${reg}" onchange="updateOT(${idx}, 'reg', this.value)"></td>
+                        <td><input type="number" step="0.5" style="width:70px; text-align:center;" value="${ot}" onchange="updateOT(${idx}, 'ot', this.value)"></td>
+                        <td><b>${(reg+ot).toFixed(2)}</b></td>
+                        <td><input type="text" style="width:100%;" value="${row.remarks || ''}" onchange="updateOT(${idx}, 'remarks', this.value)"></td>
+                        <td><button class="btn btn-sm btn-danger" onclick="deleteOTDay(${idx})">Delete</button></td>
+                    </tr>
+                `;
+            });
+            document.getElementById('ot-total-reg').textContent = totalReg.toFixed(2);
+            document.getElementById('ot-total-ot').textContent = totalOt.toFixed(2);
+            document.getElementById('ot-total-all').textContent = (totalReg + totalOt).toFixed(2);
+        }
+
+        function updateOT(idx, field, val) {
+            if(field === 'reg' || field === 'ot') val = parseFloat(val) || 0;
+            db.overtime[currentUser][idx][field] = val;
+            saveData();
+            renderOvertime();
+        }
+
+        function updateOTDate(idx, val) {
+            db.overtime[currentUser][idx].date = val;
+            let dayName = getDayName(val);
+            if(dayName === 'Friday' || dayName === 'Monday') {
+                db.overtime[currentUser][idx].reg = 0;
+                db.overtime[currentUser][idx].remarks = "Weekend Off (Friday/Monday)";
+            } else {
+                db.overtime[currentUser][idx].reg = 8.5;
+                db.overtime[currentUser][idx].remarks = "Regular shift";
+            }
+            saveData();
+            renderOvertime();
+        }
+
+        function addOTDay() {
+            if(!db.overtime[currentUser]) db.overtime[currentUser] = [];
+            let list = db.overtime[currentUser];
+            let lastDate = list.length > 0 ? new Date(list[list.length - 1].date) : new Date(db.selectedYear, db.selectedMonth, 1);
+            lastDate.setDate(lastDate.getDate() + 1);
+            let dStr = lastDate.toISOString().slice(0,10);
+            let dayName = getDayName(dStr);
+            let isOff = (dayName === 'Friday' || dayName === 'Monday');
+            list.push({ date: dStr, reg: isOff ? 0 : 8.5, ot: 0, remarks: isOff ? "Weekend Off (Friday/Monday)" : "Extra shift" });
+            saveData();
+            renderOvertime();
+        }
+
+        function deleteOTDay(idx) {
+            db.overtime[currentUser].splice(idx, 1);
+            saveData();
+            renderOvertime();
+        }
+
+        function exportOvertimeCSV() {
+            let csv = ["Day,Date,Day of Week,Regular Hours,Overtime Hours,Total Hours,Remarks"];
+            let list = db.overtime[currentUser] || [];
+            list.forEach((r, i) => {
+                csv.push(`Day ${i+1},${r.date},${getDayName(r.date)},${r.reg},${r.ot},${r.reg+r.ot},"${r.remarks}"`);
+            });
+            let blob = new Blob([csv.join("\n")], { type: 'text/csv' });
+            let link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = `Overtime_Manpower_${currentUser}_${db.selectedYear}-${db.selectedMonth+1}.csv`;
+            link.click();
+        }
+
+        let hplcInitialized = false;
+        let activeTimeInput = null;
+        let activeHplcMachineIndex = null;
+        let activeHplcRowIndex = null;
+        let activeHplcField = null;
+        let selectedHour = "00";
+        let selectedMinute = "00";
+
+        function initMultiHplcManager() {
+            const timePicker = document.getElementById('timePicker');
+            const hourList = document.getElementById('hourList');
+            const minuteList = document.getElementById('minuteList');
+
+            if(!hplcInitialized) {
+                hplcInitialized = true;
+                for (let i = 0; i < 24; i++) {
+                    let val = i.toString().padStart(2, '0');
+                    let div = document.createElement('div');
+                    div.className = 'tp-item';
+                    div.textContent = val;
+                    div.onclick = () => {
+                        Array.from(hourList.children).forEach(c => c.classList.remove('selected'));
+                        div.classList.add('selected');
+                        selectedHour = val;
+                    };
+                    hourList.appendChild(div);
+                }
+                for (let i = 0; i < 60; i++) {
+                    let val = i.toString().padStart(2, '0');
+                    let div = document.createElement('div');
+                    div.className = 'tp-item';
+                    div.textContent = val;
+                    div.onclick = () => {
+                        Array.from(minuteList.children).forEach(c => c.classList.remove('selected'));
+                        div.classList.add('selected');
+                        selectedMinute = val;
+                    };
+                    minuteList.appendChild(div);
+                }
+
+                document.getElementById('tpCancel').onclick = () => { timePicker.style.display = 'none'; };
+                document.getElementById('tpOk').onclick = () => {
+                    if(activeTimeInput && activeHplcMachineIndex !== null && activeHplcRowIndex !== null && activeHplcField) {
+                        let timeStr = `${selectedHour}:${selectedMinute}`;
+                        activeTimeInput.value = timeStr;
+                        db.hplcMachines[activeHplcMachineIndex].rows[activeHplcRowIndex][activeHplcField] = timeStr;
+                        saveData();
+                        calculateHplcMachineTotals(activeHplcMachineIndex);
+                    }
+                    timePicker.style.display = 'none';
+                };
+            }
+
+            renderHplcMachines();
+        }
+
+        function addNewHplcMachine() {
+            let nextNum = db.hplcMachines.length + 1;
+            db.hplcMachines.push({
+                id: `HPLC-0${nextNum}`,
+                name: `Waters Alliance HPLC ${nextNum}`,
+                rows: []
+            });
+            saveData();
+            renderHplcMachines();
+        }
+
+        function removeHplcMachine(index) {
+            if(db.hplcMachines.length <= 1) {
+                alert("You must keep at least one HPLC machine.");
+                return;
+            }
+            if(confirm(`Are you sure you want to remove ${db.hplcMachines[index].id}?`)) {
+                db.hplcMachines.splice(index, 1);
+                saveData();
+                renderHplcMachines();
+            }
+        }
+
+        function renderHplcMachines() {
+            const container = document.getElementById('hplcMachinesContainer');
+            container.innerHTML = '';
+
+            db.hplcMachines.forEach((machine, mIndex) => {
+                const card = document.createElement('div');
+                card.className = 'hplc-machine-card';
+                card.innerHTML = `
+                    <div class="hplc-machine-header">
+                        <div style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap; flex: 1;">
+                            <div class="form-group" style="margin-bottom:0; width: 180px;">
+                                <label><b>HPLC Number / ID</b></label>
+                                <input type="text" value="${machine.id}" onchange="updateHplcProp(${mIndex}, 'id', this.value)">
+                            </div>
+                            <div class="form-group" style="margin-bottom:0; flex: 1; min-width: 220px;">
+                                <label><b>Instrument Description</b></label>
+                                <input type="text" value="${machine.name}" onchange="updateHplcProp(${mIndex}, 'name', this.value)">
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <button class="btn btn-sm btn-success" onclick="addHplcRow(${mIndex})">+ Add Run Row</button>
+                            <button class="btn btn-sm btn-secondary" onclick="exportHplcCSV(${mIndex})">📊 Export CSV</button>
+                            <button class="btn btn-sm btn-danger" onclick="removeHplcMachine(${mIndex})">🗑️ Remove Machine</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table id="hplcTable_${mIndex}">
+                            <thead>
+                                <tr>
+                                    <th>Start Date</th>
+                                    <th>Start Time (24h)</th>
+                                    <th>End Date</th>
+                                    <th>End Time (24h)</th>
+                                    <th>Time</th>
+                                    <th>Hour(s)</th>
+                                    <th>Day(s)</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="hplcTbody_${mIndex}"></tbody>
+                            <tfoot>
+                                <tr>
+                                    <th colspan="4" style="text-align: right;">Total Run Time (${machine.id}):</th>
+                                    <th id="hplcTotalTime_${mIndex}">0h 0m</th>
+                                    <th id="hplcTotalHours_${mIndex}">0.00</th>
+                                    <th id="hplcTotalDays_${mIndex}">0.00</th>
+                                    <th></th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                `;
+                container.appendChild(card);
+                renderHplcRows(mIndex);
+            });
+        }
+
+        function updateHplcProp(mIndex, prop, val) {
+            db.hplcMachines[mIndex][prop] = val;
+            saveData();
+        }
+
+        function addHplcRow(mIndex) {
+            if(!db.hplcMachines[mIndex].rows) db.hplcMachines[mIndex].rows = [];
+            db.hplcMachines[mIndex].rows.push({ startDate: '', startTime: '', endDate: '', endTime: '' });
+            saveData();
+            renderHplcRows(mIndex);
+        }
+
+        function deleteHplcRow(mIndex, rIndex) {
+            db.hplcMachines[mIndex].rows.splice(rIndex, 1);
+            saveData();
+            renderHplcRows(mIndex);
+        }
+
+        function updateHplcRowData(mIndex, rIndex, field, val) {
+            db.hplcMachines[mIndex].rows[rIndex][field] = val;
+            saveData();
+            calculateHplcMachineTotals(mIndex);
+        }
+
+        function renderHplcRows(mIndex) {
+            const tbody = document.getElementById(`hplcTbody_${mIndex}`);
+            tbody.innerHTML = '';
+            let machine = db.hplcMachines[mIndex];
+            if(!machine.rows || machine.rows.length === 0) {
+                machine.rows = [{ startDate: '', startTime: '', endDate: '', endTime: '' }];
+            }
+
+            machine.rows.forEach((row, rIndex) => {
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><input type="date" value="${row.startDate || ''}" onchange="updateHplcRowData(${mIndex}, ${rIndex}, 'startDate', this.value)"></td>
+                    <td><input type="text" class="time-input" placeholder="00:00" readonly value="${row.startTime || ''}" onclick="openTimePicker(this, ${mIndex}, ${rIndex}, 'startTime')"></td>
+                    <td><input type="date" value="${row.endDate || ''}" onchange="updateHplcRowData(${mIndex}, ${rIndex}, 'endDate', this.value)"></td>
+                    <td><input type="text" class="time-input" placeholder="00:00" readonly value="${row.endTime || ''}" onclick="openTimePicker(this, ${mIndex}, ${rIndex}, 'endTime')"></td>
+                    <td id="fmt_${mIndex}_${rIndex}">0h 0m</td>
+                    <td id="hrs_${mIndex}_${rIndex}">0.00</td>
+                    <td id="days_${mIndex}_${rIndex}">0.00</td>
+                    <td><button class="btn btn-sm btn-danger" onclick="deleteHplcRow(${mIndex}, ${rIndex})">Delete</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+            calculateHplcMachineTotals(mIndex);
+        }
+
+        function openTimePicker(inputEl, mIndex, rIndex, field) {
+            activeTimeInput = inputEl;
+            activeHplcMachineIndex = mIndex;
+            activeHplcRowIndex = rIndex;
+            activeHplcField = field;
+            document.getElementById('timePicker').style.display = 'flex';
+        }
+
+        function calculateHplcMachineTotals(mIndex) {
+            let machine = db.hplcMachines[mIndex];
+            let totalMin = 0, totalHrs = 0, totalDays = 0;
+
+            machine.rows.forEach((row, rIndex) => {
+                let sDate = row.startDate;
+                let sTime = row.startTime;
+                let eDate = row.endDate;
+                let eTime = row.endTime;
+
+                let tCell = document.getElementById(`fmt_${mIndex}_${rIndex}`);
+                let hCell = document.getElementById(`hrs_${mIndex}_${rIndex}`);
+                let dCell = document.getElementById(`days_${mIndex}_${rIndex}`);
+
+                if(tCell) {
+                    if(sDate && sTime && eDate && eTime) {
+                        let start = new Date(`${sDate}T${sTime}`);
+                        let end = new Date(`${eDate}T${eTime}`);
+                        let diff = end - start;
+                        if(diff >= 0) {
+                            let mins = Math.floor(diff / (1000 * 60));
+                            let hrs = mins / 60;
+                            let days = hrs / 24;
+                            tCell.textContent = `${Math.floor(hrs)}h ${mins%60}m`;
+                            hCell.textContent = hrs.toFixed(2);
+                            dCell.textContent = days.toFixed(4);
+                            totalMin += mins;
+                            totalHrs += hrs;
+                            totalDays += days;
+                        } else {
+                            tCell.textContent = "Error";
+                            hCell.textContent = "0.00";
+                            dCell.textContent = "0.00";
+                        }
+                    } else {
+                        tCell.textContent = "0h 0m";
+                        hCell.textContent = "0.00";
+                        dCell.textContent = "0.00";
+                    }
+                }
+            });
+
+            const totalTimeEl = document.getElementById(`hplcTotalTime_${mIndex}`);
+            const totalHoursEl = document.getElementById(`hplcTotalHours_${mIndex}`);
+            const totalDaysEl = document.getElementById(`hplcTotalDays_${mIndex}`);
+
+            if(totalTimeEl) totalTimeEl.textContent = `${Math.floor(totalMin/60)}h ${totalMin%60}m`;
+            if(totalHoursEl) totalHoursEl.textContent = totalHrs.toFixed(2);
+            if(totalDaysEl) totalDaysEl.textContent = totalDays.toFixed(4);
+        }
+
+        function exportHplcCSV(mIndex) {
+            let machine = db.hplcMachines[mIndex];
+            let csv = [`HPLC Machine ID: ${machine.id} - ${machine.name}`, "Start Date,Start Time,End Date,End Time,Time,Hours,Days"];
+            
+            machine.rows.forEach((row, rIndex) => {
+                let tCell = document.getElementById(`fmt_${mIndex}_${rIndex}`);
+                let hCell = document.getElementById(`hrs_${mIndex}_${rIndex}`);
+                let dCell = document.getElementById(`days_${mIndex}_${rIndex}`);
+                csv.push([
+                    row.startDate,
+                    row.startTime,
+                    row.endDate,
+                    row.endTime,
+                    `"${tCell ? tCell.textContent : '0h 0m'}"`,
+                    hCell ? hCell.textContent : '0.00',
+                    dCell ? dCell.textContent : '0.00'
+                ].join(","));
+            });
+
+            let blob = new Blob([csv.join("\n")], { type: 'text/csv' });
+            let link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = `HPLC_Log_${machine.id}_${new Date().toISOString().slice(0,10)}.csv`;
+            link.click();
+        }
+
+        function addDocumentStatus() {
+            const name = document.getElementById('doc-name').value;
+            const category = document.getElementById('doc-category').value;
+            const status = document.getElementById('doc-status').value;
+            if(!name) { alert("Enter document name"); return; }
+
+            db.docs.push({ name, category, status, updated: new Date().toISOString().slice(0,10) });
+            saveData();
+            renderDocs();
+            document.getElementById('doc-name').value = '';
+        }
+
+        function deleteDocument(idx) {
+            db.docs.splice(idx, 1);
+            saveData();
+            renderDocs();
+        }
+
+        function renderDocs() {
+            const tbody = document.getElementById('docs-table-body');
+            tbody.innerHTML = '';
+            db.docs.forEach((d, idx) => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${d.name}</td>
+                        <td>${d.category}</td>
+                        <td><b>${d.status}</b></td>
+                        <td>${d.updated}</td>
+                        <td><button class="btn btn-sm btn-danger" onclick="deleteDocument(${idx})">Delete</button></td>
+                    </tr>
+                `;
+            });
+        }
+
+        function changeAdminCalendar() {
+            db.selectedYear = parseInt(document.getElementById('admin-year').value);
+            db.selectedMonth = parseInt(document.getElementById('admin-month').value);
+            db.monthParams.totalDays = getDaysInMonth(db.selectedYear, db.selectedMonth);
+            saveData();
+            renderAdminDashboard();
+        }
+
+        function updateMonthParams() {
+            db.monthParams.totalFridays = parseInt(document.getElementById('param-total-fridays').value) || 4;
+            db.monthParams.totalMondays = parseInt(document.getElementById('param-total-mondays').value) || 4;
+            db.monthParams.publicHoliday = parseInt(document.getElementById('param-public-holiday').value) || 0;
+            saveData();
+            renderAdminDashboard();
+        }
+
+        function renderAdminDashboard() {
+            document.getElementById('admin-year').value = db.selectedYear;
+            document.getElementById('admin-month').value = db.selectedMonth;
+
+            let daysInMonth = getDaysInMonth(db.selectedYear, db.selectedMonth);
+            db.monthParams.totalDays = daysInMonth;
+
+            document.getElementById('param-total-fridays').value = db.monthParams.totalFridays;
+            document.getElementById('param-total-mondays').value = db.monthParams.totalMondays;
+            document.getElementById('param-public-holiday').value = db.monthParams.publicHoliday;
+            document.getElementById('param-total-days').value = daysInMonth;
+
+            const totalHoliday = db.monthParams.totalFridays + db.monthParams.totalMondays + db.monthParams.publicHoliday;
+            const totalWorkingDays = Math.max(0, daysInMonth - totalHoliday);
+            const totalDaysWithMonday = totalWorkingDays + db.monthParams.totalMondays;
+
+            document.getElementById('param-total-holiday').value = totalHoliday;
+            document.getElementById('param-total-working-days').value = totalWorkingDays;
+            document.getElementById('param-total-days-with-monday').value = totalDaysWithMonday;
+
+            const mhBody = document.getElementById('admin-manhour-table');
+            mhBody.innerHTML = '';
+            const chartContainer = document.getElementById('admin-chart-container');
+            chartContainer.innerHTML = '';
+
+            db.employees.forEach((emp, index) => {
+                let leavesList = db.leaves[emp.id] || [];
+                let leaveDays = leavesList.reduce((acc, l) => acc + (l.daysCount || calculateLeaveDays(l.fromDate, l.toDate)), 0);
+                let daysPresent = Math.max(0, totalWorkingDays - leaveDays);
+                let avgHours = 8.5;
+                let totalWorkingHours = totalWorkingDays * avgHours;
+                
+                let regularTime = avgHours * daysPresent;
+                if(!db.overtime[emp.id]) db.overtime[emp.id] = generateMonthOT(db.selectedYear, db.selectedMonth);
+                let otList = db.overtime[emp.id];
+                let overtimeHrs = otList.reduce((acc, r) => acc + (parseFloat(r.ot) || 0), 0);
+                let totalManHour = regularTime + overtimeHrs;
+                let efficiency = totalWorkingHours > 0 ? parseFloat(((totalManHour / totalWorkingHours) * 100).toFixed(2)) : 0;
+
+                mhBody.innerHTML += `
+                    <tr>
+                        <td>${index+1}</td>
+                        <td>${emp.name}</td>
+                        <td>${emp.designation || 'Executive'}</td>
+                        <td>${emp.id}</td>
+                        <td>${totalWorkingDays}</td>
+                        <td>${leaveDays}</td>
+                        <td>${daysPresent}</td>
+                        <td>${avgHours}</td>
+                        <td>${totalWorkingHours}</td>
+                        <td>${regularTime.toFixed(1)}</td>
+                        <td><b>${overtimeHrs.toFixed(1)}</b></td>
+                        <td><b>${totalManHour.toFixed(1)}</b></td>
+                        <td>${efficiency}%</td>
+                        <td><button class="btn btn-sm btn-danger" onclick="deleteEmployee('${emp.id}')">Remove</button></td>
+                    </tr>
+                `;
+
+                let barWidth = Math.min(efficiency, 150);
+                chartContainer.innerHTML += `
+                    <div class="chart-bar-row">
+                        <div class="chart-label" title="${emp.name}">${emp.name} (${emp.id})</div>
+                        <div class="chart-bar-wrapper">
+                            <div class="chart-bar-fill" style="width: ${barWidth * (100/150)}%;"></div>
+                        </div>
+                        <div class="chart-val">${efficiency}%</div>
+                    </div>
+                `;
+            });
+
+            const otHeader = document.getElementById('admin-ot-matrix-header');
+            const otBody = document.getElementById('admin-ot-matrix-body');
+            
+            let headerHTML = `<th>S.No.</th><th>Name</th><th>ID</th>`;
+            let weekendDaysFlags = [];
+            for(let d=1; d<=daysInMonth; d++) {
+                let dayName = getDayNameByNum(db.selectedYear, db.selectedMonth, d);
+                let isWeekend = (dayName === 'Friday' || dayName === 'Monday');
+                weekendDaysFlags.push(isWeekend);
+                let thStyle = isWeekend ? 'background-color: #d39e00; color: white;' : '';
+                headerHTML += `<th style="${thStyle}" title="${dayName}">${d}<br><small>${dayName.slice(0,3)}</small></th>`;
+            }
+            headerHTML += `<th>Total OT</th>`;
+            otHeader.innerHTML = headerHTML;
+
+            otBody.innerHTML = '';
+            db.employees.forEach((emp, index) => {
+                let otList = db.overtime[emp.id] || generateMonthOT(db.selectedYear, db.selectedMonth);
+                let rowHTML = `<tr><td>${index+1}</td><td><b>${emp.name}</b></td><td>${emp.id}</td>`;
+                let totalEmpOT = 0;
+
+                for(let d=1; d<=daysInMonth; d++) {
+                    let dayRecord = otList[d-1];
+                    let otVal = dayRecord ? (parseFloat(dayRecord.ot) || 0) : 0;
+                    totalEmpOT += otVal;
+                    let displayVal = otVal > 0 ? otVal : '-';
+                    
+                    let cellStyle = "";
+                    if(weekendDaysFlags[d-1]) cellStyle = "background-color: var(--weekend-bg);";
+                    if(otVal > 0) cellStyle += " font-weight: bold; color: #2e7d32;";
+                    rowHTML += `<td style="${cellStyle}">${displayVal}</td>`;
+                }
+                rowHTML += `<td><b>${totalEmpOT.toFixed(1)}</b></td></tr>`;
+                otBody.innerHTML += rowHTML;
+            });
+        }
+
+        function exportAdminManHourCSV() {
+            let daysInMonth = getDaysInMonth(db.selectedYear, db.selectedMonth);
+            const totalHoliday = db.monthParams.totalFridays + db.monthParams.totalMondays + db.monthParams.publicHoliday;
+            const totalWorkingDays = Math.max(0, daysInMonth - totalHoliday);
+            let csv = ["S.No.,Employee Name,Designation,ID,Total Working Days,Leave Days,Days Present,Avg Hours/Day,Total Working Hours,Regular Time (Hrs),Overtime (Hrs),Total Man-Hour,% Efficiency"];
+            db.employees.forEach((emp, index) => {
+                let leavesList = db.leaves[emp.id] || [];
+                let leaveDays = leavesList.reduce((acc, l) => acc + (l.daysCount || calculateLeaveDays(l.fromDate, l.toDate)), 0);
+                let daysPresent = Math.max(0, totalWorkingDays - leaveDays);
+                let avgHours = 8.5;
+                let totalWorkingHours = totalWorkingDays * avgHours;
+                let regularTime = avgHours * daysPresent;
+                let otList = db.overtime[emp.id] || generateMonthOT(db.selectedYear, db.selectedMonth);
+                let overtimeHrs = otList.reduce((acc, r) => acc + (parseFloat(r.ot) || 0), 0);
+                let totalManHour = regularTime + overtimeHrs;
+                let efficiency = totalWorkingHours > 0 ? ((totalManHour / totalWorkingHours) * 100).toFixed(2) : "0.00";
+
+                csv.push([
+                    index+1,
+                    `"${emp.name}"`,
+                    `"${emp.designation || 'Executive'}"`,
+                    emp.id,
+                    totalWorkingDays,
+                    leaveDays,
+                    daysPresent,
+                    avgHours,
+                    totalWorkingHours,
+                    regularTime.toFixed(1),
+                    overtimeHrs.toFixed(1),
+                    totalManHour.toFixed(1),
+                    `${efficiency}%`
+                ].join(","));
+            });
+
+            let blob = new Blob([csv.join("\n")], { type: 'text/csv' });
+            let link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = `ManHour_Summary_Report_${db.selectedYear}-${db.selectedMonth+1}.csv`;
+            link.click();
+        }
+
+        function exportAdminOvertimeMatrixCSV() {
+            let daysInMonth = getDaysInMonth(db.selectedYear, db.selectedMonth);
+            let header = ["S.No.", "Name", "ID"];
+            for(let d=1; d<=daysInMonth; d++) header.push(`Day ${d} (${getDayNameByNum(db.selectedYear, db.selectedMonth, d)})`);
+            header.push("Total OT");
+            let csv = [header.join(",")];
+
+            db.employees.forEach((emp, index) => {
+                let row = [index+1, `"${emp.name}"`, emp.id];
+                let otList = db.overtime[emp.id] || generateMonthOT(db.selectedYear, db.selectedMonth);
+                let totalOT = 0;
+                for(let d=1; d<=daysInMonth; d++) {
+                    let otVal = otList[d-1] ? (parseFloat(otList[d-1].ot) || 0) : 0;
+                    totalOT += otVal;
+                    row.push(otVal);
+                }
+                row.push(totalOT.toFixed(1));
+                csv.push(row.join(","));
+            });
+
+            let blob = new Blob([csv.join("\n")], { type: 'text/csv' });
+            let link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = `Overtime_Dates_Matrix_${db.selectedYear}-${db.selectedMonth+1}.csv`;
+            link.click();
+        }
+
+        function openAddEmployeeModal() { document.getElementById('employeeModal').style.display = 'flex'; }
+        function closeAddEmployeeModal() { document.getElementById('employeeModal').style.display = 'none'; }
+        
+        function saveNewEmployee() {
+            const id = document.getElementById('new-emp-id').value.trim().toUpperCase();
+            const name = document.getElementById('new-emp-name').value;
+            const desig = document.getElementById('new-emp-desig').value;
+            const dept = document.getElementById('new-emp-dept').value;
+            const pass = document.getElementById('new-emp-pass').value || "password123";
+
+            if(!id || !name) { alert("ID and Name are required"); return; }
+            db.employees.push({ id, name, designation: desig, department: dept, pass });
+            db.passwords[id] = pass;
+            db.overtime[id] = generateMonthOT(db.selectedYear, db.selectedMonth);
+            saveData();
+            closeAddEmployeeModal();
+            renderAdminDashboard();
+        }
+
+        function deleteEmployee(id) {
+            if(confirm(`Are you sure you want to remove employee ${id}?`)) {
+                db.employees = db.employees.filter(e => e.id !== id);
+                delete db.passwords[id];
+                saveData();
+                renderAdminDashboard();
+            }
+        }
+
+        function openPasswordModal() { document.getElementById('passwordModal').style.display = 'flex'; }
+        function closePasswordModal() { document.getElementById('passwordModal').style.display = 'none'; }
+        
+        function updatePassword() {
+            const newPass = document.getElementById('new-password').value;
+            if(!newPass) { alert("Enter a valid password"); return; }
+            db.passwords[currentUser] = newPass;
+            const emp = db.employees.find(e => e.id === currentUser);
+            if(emp) emp.pass = newPass;
+            saveData();
+            alert("Password updated successfully!");
+            closePasswordModal();
+            document.getElementById('new-password').value = '';
+        }
+    </script>
+</body>
+</html>
